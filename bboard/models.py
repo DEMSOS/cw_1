@@ -1,4 +1,24 @@
 from django.db import models
+from django.core import validators
+from django.core.exceptions import ValidationError
+
+
+def validate_even(val):
+    if val % 2 != 0:
+        raise ValidationError('Число %(value)s нечётное', code='odd',
+                              params={'value': val})
+
+
+class MinMaxValueValidator:
+    def __init__(self, min_value, max_value):
+        self.min_value = min_value
+        self.max_value = max_value
+    def __call__(self, val):
+        if val < self.min_value or val > self.max_value:
+            raise ValidationError('Введённое Число должно'
+                                  'Находиться в диапозоне от %(value)s нечётное',
+                                  code='out_of_range',
+                                  params={'min': self.min_value, 'max': self.max_value})
 
 
 # Create your models here.
@@ -11,8 +31,19 @@ class Rubric(models.Model):
 
     )
 
-    def str(self):
+    def __str__(self):
         return f'{self.name}'
+
+    # def get_absolut_url(self):
+    #     return f"{self.pk}/"
+
+    # def save(self, *args, **kwargs):
+    #     #Действие перед сохранением
+    #     super().save(*args, **kwargs)
+    #     #Действие после сохранения
+    #
+    # def delete(self, *args, **kwargs):
+    #     super().delete(*args, **kwargs)
 
     class Meta:
         verbose_name = 'Рубрика'
@@ -58,6 +89,8 @@ class Bb(models.Model):
     title = models.CharField(
         max_length=50,
         verbose_name='Товар',
+        validators=[validators.RegexValidator(regex='^.{4,}$')],
+        error_messages={'invalid': 'Введите 4 и более символов'},
     )
 
     content = models.TextField(
@@ -79,6 +112,7 @@ class Bb(models.Model):
         blank=True,
         default=0,
         verbose_name='Цена',
+        validators=[validate_even]
     )
 
     published = models.DateTimeField(
@@ -87,7 +121,25 @@ class Bb(models.Model):
         verbose_name='Опубликовано',
     )
 
-    def str(self):
+    def title_and_price(self):
+        if self.price:
+            return f'{self.title} ({self.price:.2f} тг.)'
+        return self.title
+
+    title_and_price.short_description = 'Название и цена'
+
+    def clean(self):
+        errors = {}
+        if not self.content:
+            errors['content'] = ValidationError('Укажите описание товара')
+
+        if self.price and self.price < 0:
+            errors['content'] = ValidationError('Укажите неотрицательное'
+                                                'значение цены')
+        if errors:
+            raise ValidationError(errors)
+
+    def __str__(self):
         return f'{self.title} ({self.price} тг.)'
 
     class Meta:
