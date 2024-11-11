@@ -64,6 +64,12 @@ class Bb(models.Model):
         ('c', 'Обменяю'),
     )
 
+    new_file = models.CharField(
+        max_length=50,
+        null=True,
+        blank=True,
+    )
+
     # KINDS = (
     #     ('Купля-продажа', (
     #         ('b', 'Куплю'),
